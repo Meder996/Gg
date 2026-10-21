@@ -17,6 +17,10 @@ npm start
 
 After a match ends, press **New match** to return to the lobby and play again (your name is kept).
 
+## All hitting trajectories
+
+Press **All hitting trajectories** before you fire. The battlefield then shows every parabola that reaches the opponent — the whole family `y = a·(x−x_you)(x−x_opponent)` with `|a| ≤ 60 / d²` (`d` = distance between players; 0.0375 for the standard 40-unit gap), drawn as a fan of faint curves with the solvable band highlighted. Pick any listed coefficient to load that formula, then press **Fire**.
+
 ## Aiming
 
 Enter a function such as `10-0.025*x^2` — `sin`, `cos`, `tan`, `sqrt`, `abs`, `ln`, `log`, `exp` and `^` are supported (radians). You play from the left at `(-20, 0)`; the opponent sits at `(20, 0)`.
