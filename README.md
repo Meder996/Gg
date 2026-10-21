@@ -1,6 +1,6 @@
 # Arc & Angle — Math Artillery
 
-Turn-based artillery duel on a Cartesian plane. Players fire functions `y = f(x)` to hit each other; every hit deals 34 damage.
+Turn-based artillery duel on a Cartesian plane. Players fire functions `y = f(x)` to hit each other. Damage depends on the trajectory: the higher its arc, the harder the hit.
 
 ## Play
 
@@ -17,9 +17,21 @@ npm start
 
 After a match ends, press **New match** to return to the lobby and play again (your name is kept).
 
+## Trajectory power
+
+Every hit's damage comes from the shape of the shot, not a fixed number:
+
+```
+power = 12 + 38 * min(1, apex / 15)      ->  12 ... 50 damage
+```
+
+`apex` is the highest point of the fired curve inside the 30-unit-high field. A flat shot (`y = 0`) deals the minimum 12; a full-height lob around `|a| = 0.0375` deals the maximum 50. Curves that dip below the line still hit, but stay at 12 damage.
+
+The panel shows the power of your current formula live as you type, and every trajectory in the fan is labelled with its own damage, so you can trade a safe low shot for a heavy lob.
+
 ## All hitting trajectories
 
-Press **All hitting trajectories** before you fire. The battlefield then shows every parabola that reaches the opponent — the whole family `y = a·(x−x_you)(x−x_opponent)` with `|a| ≤ 60 / d²` (`d` = distance between players; 0.0375 for the standard 40-unit gap), drawn as a fan of faint curves with the solvable band highlighted. Pick any listed coefficient to load that formula, then press **Fire**.
+Press **All hitting trajectories** before you fire. The battlefield then shows every parabola that reaches the opponent — the whole family `y = a·(x−x_you)(x−x_opponent)` with `|a| ≤ 60 / d²` (`d` = distance between players; 0.0375 for the standard 40-unit gap), drawn as a fan of faint curves with the solvable band highlighted. Each listed coefficient shows its own power; clicking one loads that formula, then press **Fire**.
 
 ## Aiming
 

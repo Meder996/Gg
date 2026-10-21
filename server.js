@@ -1,8 +1,11 @@
 const http=require('http'),fs=require('fs'),path=require('path'),WebSocket=require('ws');
 const server=http.createServer((req,res)=>{let file=path.join(__dirname,req.url==='/'?'index.html':decodeURIComponent(req.url.split('?')[0]));if(!file.startsWith(__dirname)){res.writeHead(403).end();return}fs.readFile(file,(e,data)=>{if(e){res.writeHead(404).end('Not found');return}res.writeHead(200,{'Content-Type':file.endsWith('.js')?'text/javascript':file.endsWith('.css')?'text/css':'text/html'});res.end(data)})});
 const wss=new WebSocket.Server({server});const rooms=new Map();const code=()=>Math.random().toString(36).slice(2,6).toUpperCase();
-const BOT_NAME='Computer',BOT_DELAY=1400,BOT_ACCURACY=.55,DAMAGE=34;
+const BOT_NAME='Computer',BOT_DELAY=1400,BOT_ACCURACY=.55,MIN_DAMAGE=12,MAX_DAMAGE=50,MAX_APEX=15;
 function send(ws,data){if(ws&&ws.readyState===WebSocket.OPEN)ws.send(JSON.stringify(data))}function broadcast(room,data){for(const p of room.players)send(p.ws,data)}
+// A trajectory's power comes from its arc: the higher the apex, the harder the hit (12-50 damage).
+function powerFor(apex){return Math.round(MIN_DAMAGE+(MAX_DAMAGE-MIN_DAMAGE)*Math.min(1,Math.max(0,Number(apex)||0)/MAX_APEX))}
+function apexOf(path){let top=0;for(const q of path)if(q&&Number.isFinite(q.y)&&q.y>top)top=q.y;return top}
 function snapshot(room){return{turn:room.turn,hp:room.hp,positions:room.positions,players:room.players.map(p=>p.name),count:room.players.length}}
 function pushState(room){broadcast(room,{type:'state',state:snapshot(room)})}
 function newRoom(solo){return{id:'',players:[],turn:0,hp:[100,100],positions:[-20,20],busy:false,solo:!!solo,over:false,botTimer:null}}
@@ -15,9 +18,9 @@ function fireBot(room){const bot=room.players[1];if(!bot||!bot.bot||room.over||r
  const landX=hit?target:Math.max(-24,Math.min(24,target+miss));
  const mid=(from+landX)/2,half=Math.abs(from-landX)/2||1,path=[];
  for(let i=0;i<=160;i++){const x=from+(landX-from)*i/160,t=(x-mid)/half;path.push({x:+x.toFixed(3),y:+(peak*(1-t*t)).toFixed(3)})}
- if(hit)room.hp[0]=Math.max(0,room.hp[0]-DAMAGE);
+ const apex=+peak.toFixed(2),damage=powerFor(apex);if(hit)room.hp[0]=Math.max(0,room.hp[0]-damage);
  room.turn=0;room.busy=false;const winner=room.hp[0]<=0?1:null;if(winner!==null)room.over=true;
- broadcast(room,{type:'shot',from:1,x:landX,y:0,path,hit,state:snapshot(room),winner})}
+ broadcast(room,{type:'shot',from:1,x:landX,y:0,path,hit,apex,damage,state:snapshot(room),winner})}
 wss.on('connection',ws=>{ws.on('message',raw=>{let m;try{m=JSON.parse(raw)}catch{return}if(m.type==='join'){
  const name=String(m.name||'Player').slice(0,18)||'Player';let room,id=(m.code||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
  if(m.solo){do{id=code()}while(rooms.has(id));room=newRoom(true);room.id=id;rooms.set(id,room);
@@ -33,9 +36,10 @@ wss.on('connection',ws=>{ws.on('message',raw=>{let m;try{m=JSON.parse(raw)}catch
  if(room.turn!==p.index||room.busy){send(ws,{type:'error',message:'Wait for your turn.'});return}
  room.busy=true;const x=Number(m.x),y=Number(m.y),target=room.positions[1-p.index];if(!Number.isFinite(x)||!Number.isFinite(y)){room.busy=false;return}
  const shotPath=Array.isArray(m.path)?m.path.slice(0,400).filter(q=>q&&Number.isFinite(q.x)&&Number.isFinite(q.y)&&Math.abs(q.x)<=25&&Math.abs(q.y)<=15):[];
- const hit=Math.abs(x-target)<1.5&&Math.abs(y)<1.7;if(hit)room.hp[1-p.index]=Math.max(0,room.hp[1-p.index]-DAMAGE);
+ const apex=+apexOf(shotPath).toFixed(2),damage=powerFor(apex);
+ const hit=Math.abs(x-target)<1.5&&Math.abs(y)<1.7;if(hit)room.hp[1-p.index]=Math.max(0,room.hp[1-p.index]-damage);
  room.turn=1-p.index;room.busy=false;const winner=room.hp[1-p.index]<=0?p.index:null;if(winner!==null)room.over=true;
- broadcast(room,{type:'shot',from:p.index,x,y,path:shotPath,hit,state:snapshot(room),winner});
+ broadcast(room,{type:'shot',from:p.index,x,y,path:shotPath,hit,apex,damage,state:snapshot(room),winner});
  if(room.solo&&winner===null&&room.turn===1)scheduleBot(room)}});
  ws.on('close',()=>{const r=ws.room;if(!r)return;clearBotTimer(r);r.players=r.players.filter(p=>p.ws!==ws);if(!r.players.some(p=>!p.bot)){rooms.delete(r.id);return}pushState(r)})});
 const port=Number(process.env.PORT)||4173;server.listen(port,'0.0.0.0',()=>console.log(`Arc & Angle running on ${port}`));
