@@ -19,4 +19,4 @@ After a match ends, press **New match** to return to the lobby and play again (y
 
 ## Aiming
 
-Enter a function such as `0.04*(x+20)^2` — `sin`, `cos`, `tan`, `sqrt`, `abs`, `ln`, `log`, `exp` and `^` are supported (radians). You play from the left at `(-20, 0)`; the opponent sits at `(20, 0)`.
+Enter a function such as `10-0.025*x^2` — `sin`, `cos`, `tan`, `sqrt`, `abs`, `ln`, `log`, `exp` and `^` are supported (radians). You play from the left at `(-20, 0)`; the opponent sits at `(20, 0)`.
